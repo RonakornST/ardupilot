@@ -316,7 +316,7 @@
     // Define Notify
     #define OBAL_NOTIFY_LED
     
-
+    
     // GY-91 SPI Connection
     #ifdef HAL_BOARD_SUBTYPE_LINUX_OBAL_V1_MPU_9250_SPI
         #define HAL_BOARD_LOG_DIRECTORY "/home/pi/ardupilot/logs"
