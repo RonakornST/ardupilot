@@ -294,7 +294,7 @@ const AP_Param::Info AP_Periph_FW::var_info[] = {
     GSCALAR(led_brightness, "LED_BRIGHTNESS", HAL_PERIPH_LED_BRIGHT_DEFAULT),
 #endif
 
-#ifdef HAL_PERIPH_ENABLE_AIRSPEED
+#if AP_PERIPH_AIRSPEED_ENABLED
     // Airspeed driver
     // @Group: ARSPD
     // @Path: ../libraries/AP_Airspeed/AP_Airspeed.cpp
@@ -619,7 +619,7 @@ const AP_Param::Info AP_Periph_FW::var_info[] = {
   #endif
 #endif
 
-#ifdef HAL_PERIPH_ENABLE_NETWORKING
+#if AP_PERIPH_NETWORKING_ENABLED
     // @Group: NET_
     // @Path: networking.cpp
     GOBJECT(networking_periph, "NET_", Networking_Periph),

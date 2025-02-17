@@ -110,7 +110,7 @@ void AP_Periph_FW::init()
 #endif
     serial_manager.init();
 
-#ifdef HAL_PERIPH_ENABLE_NETWORKING
+#if AP_PERIPH_NETWORKING_ENABLED
     networking_periph.init();
 #endif
 
@@ -216,7 +216,7 @@ void AP_Periph_FW::init()
     kdecan.init();
 #endif
 
-#ifdef HAL_PERIPH_ENABLE_AIRSPEED
+#if AP_PERIPH_AIRSPEED_ENABLED
 #if (CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS) && (HAL_USE_I2C == TRUE)
     const bool pins_enabled = ChibiOS::I2CBus::check_select_pins(0x01);
     if (pins_enabled) {
@@ -535,7 +535,7 @@ void AP_Periph_FW::update()
 
     can_update();
 
-#ifdef HAL_PERIPH_ENABLE_NETWORKING
+#if AP_PERIPH_NETWORKING_ENABLED
     networking_periph.update();
 #endif
 
