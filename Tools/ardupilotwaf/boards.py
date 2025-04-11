@@ -1739,7 +1739,7 @@ class canzero(linux):
         )
 
 class orin(linux):
-    toolchain = 'arm-linux-gnueabihf'
+    toolchain = 'aarch64-linux-gnu'
 
     def configure_env(self, cfg, env):
         super(orin, self).configure_env(cfg, env)
