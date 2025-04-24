@@ -18,6 +18,7 @@
 #include "AnalogIn_IIO.h"
 #include "AnalogIn_Navio2.h"
 #include "GPIO.h"
+#include "GPIO_JETSON.h"
 #include "I2CDevice.h"
 #include "OpticalFlow_Onboard.h"
 #include "RCInput.h"
@@ -151,6 +152,8 @@ static GPIO_Sysfs gpioDriver;
       CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_DISCO || \
       CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_AERO
 static GPIO_Sysfs gpioDriver;
+#elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_JETSON_ORIN_NANO
+static GPIO_JETSON gpioDriver;
 #else
 static Empty::GPIO gpioDriver;
 #endif
