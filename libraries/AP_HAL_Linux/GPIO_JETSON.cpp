@@ -3,6 +3,7 @@
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_JETSON_ORIN_NANO
 
 #include "GPIO_JETSON.h"
+#include "GPIO.h"
 
 using namespace Linux;
 

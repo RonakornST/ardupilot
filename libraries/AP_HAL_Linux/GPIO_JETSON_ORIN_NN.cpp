@@ -149,28 +149,28 @@ uint32_t GPIO_JETSON_ORIN_NN::get_gpio_register_address(GPIODomain domain, GPIOC
     uint32_t domain_base;
     switch (domain) {
         case GPIODomain::NON_AON:
-            domain_base = base_CNF_NAON; // 0x02210000
+            domain_base = GPIODomainBase::NON_AON; // 0x02210000
             break;
         case GPIODomain::AON:
-            domain_base = base_CNF_AON;  // 0x0c2f1000
+            domain_base = GPIODomainBase::AON;  // 0x0c2f1000
             break;
         case GPIODomain::PADCTL_A0:
-            domain_base = Pinmux_G3;     // 0x02430000
+            domain_base = GPIODomainBase::PADCTL_A0;     // 0x02430000
             break;
         case GPIODomain::PADCTL_A4:
-            domain_base = Pinmux_G4;     // 0x02434000
+            domain_base = GPIODomainBase::PADCTL_A4;     // 0x02434000
             break;
         case GPIODomain::PADCTL_A13:
-            domain_base = Pinmux_G2;     // 0x0243d000
+            domain_base = GPIODomainBase::PADCTL_A13;     // 0x0243d000
             break;
         case GPIODomain::PADCTL_A14:
-            domain_base = Pinmux_AON;    // 0x0c302000
+            domain_base = GPIODomainBase::PADCTL_A14;    // 0x0c302000
             break;
         case GPIODomain::PADCTL_A16:
-            domain_base = Pinmux_EDP;    // 0x02440000
+            domain_base = GPIODomainBase::PADCTL_A16;    // 0x02440000
             break;
         case GPIODomain::PADCTL_A24:
-            domain_base = Pinmux_G7;     // 0x02448000
+            domain_base = GPIODomainBase::PADCTL_A24;     // 0x02448000
             break;
         default:
             return 0; // Invalid domain
@@ -187,39 +187,20 @@ void GPIO_JETSON_ORIN_NN::set_gpio_mode_alt(GPIODomain domain, GPIOController co
         return;
     }
 
-    // Get the domain base address
-    uint32_t domain_base;
+    // Check if the domain is valid
     switch (domain) {
         case GPIODomain::NON_AON:
-            domain_base = base_CNF_NAON;
-            break;
         case GPIODomain::AON:
-            domain_base = base_CNF_AON;
-            break;
         case GPIODomain::PADCTL_A0:
-            domain_base = Pinmux_G3;
-            break;
         case GPIODomain::PADCTL_A4:
-            domain_base = Pinmux_G4;
-            break;
         case GPIODomain::PADCTL_A13:
-            domain_base = Pinmux_G2;
-            break;
         case GPIODomain::PADCTL_A14:
-            domain_base = Pinmux_AON;
-            break;
         case GPIODomain::PADCTL_A16:
-            domain_base = Pinmux_EDP;
-            break;
         case GPIODomain::PADCTL_A24:
-            domain_base = Pinmux_G7;
             break;
         default:
             return; // Invalid domain
     }
-
-    // Calculate the register address for the CNF register
-    uint32_t cnf_reg_addr = domain_base + cnf_offset;
 
     // Get a pointer to the GPIO_CNFO structure
     volatile GPIO_CNFO* gpio_cnf = (volatile GPIO_CNFO*)(_gpio_domain_bases[static_cast<int>(domain)] +
@@ -230,9 +211,6 @@ void GPIO_JETSON_ORIN_NN::set_gpio_mode_alt(GPIODomain domain, GPIOController co
 
     // Now handle the pinmux register if needed
     if (pinmux_offset != 0) {
-        // Calculate the register address for the PINMUX register
-        uint32_t pinmux_reg_addr = domain_base + pinmux_offset;
-
         // Get a pointer to the PINMUX register
         volatile uint32_t* pinmux_reg_ptr = _gpio_domain_bases[static_cast<int>(domain)] +
                                           (pinmux_offset / sizeof(uint32_t));
@@ -254,32 +232,16 @@ void GPIO_JETSON_ORIN_NN::set_gpio_mode_in(GPIODomain domain, GPIOController con
         return;
     }
 
-    // Get the domain base address
-    uint32_t domain_base;
+    // Check if the domain is valid
     switch (domain) {
         case GPIODomain::NON_AON:
-            domain_base = base_CNF_NAON;
-            break;
         case GPIODomain::AON:
-            domain_base = base_CNF_AON;
-            break;
         case GPIODomain::PADCTL_A0:
-            domain_base = Pinmux_G3;
-            break;
         case GPIODomain::PADCTL_A4:
-            domain_base = Pinmux_G4;
-            break;
         case GPIODomain::PADCTL_A13:
-            domain_base = Pinmux_G2;
-            break;
         case GPIODomain::PADCTL_A14:
-            domain_base = Pinmux_AON;
-            break;
         case GPIODomain::PADCTL_A16:
-            domain_base = Pinmux_EDP;
-            break;
         case GPIODomain::PADCTL_A24:
-            domain_base = Pinmux_G7;
             break;
         default:
             return; // Invalid domain
@@ -314,32 +276,16 @@ void GPIO_JETSON_ORIN_NN::set_gpio_mode_out(GPIODomain domain, GPIOController co
         return;
     }
 
-    // Get the domain base address
-    uint32_t domain_base;
+    // Check if the domain is valid
     switch (domain) {
         case GPIODomain::NON_AON:
-            domain_base = base_CNF_NAON;
-            break;
         case GPIODomain::AON:
-            domain_base = base_CNF_AON;
-            break;
         case GPIODomain::PADCTL_A0:
-            domain_base = Pinmux_G3;
-            break;
         case GPIODomain::PADCTL_A4:
-            domain_base = Pinmux_G4;
-            break;
         case GPIODomain::PADCTL_A13:
-            domain_base = Pinmux_G2;
-            break;
         case GPIODomain::PADCTL_A14:
-            domain_base = Pinmux_AON;
-            break;
         case GPIODomain::PADCTL_A16:
-            domain_base = Pinmux_EDP;
-            break;
         case GPIODomain::PADCTL_A24:
-            domain_base = Pinmux_G7;
             break;
         default:
             return; // Invalid domain
@@ -374,32 +320,16 @@ void GPIO_JETSON_ORIN_NN::set_gpio_high(GPIODomain domain, GPIOController contro
         return;
     }
 
-    // Get the domain base address
-    uint32_t domain_base;
+    // Check if the domain is valid
     switch (domain) {
         case GPIODomain::NON_AON:
-            domain_base = base_CNF_NAON;
-            break;
         case GPIODomain::AON:
-            domain_base = base_CNF_AON;
-            break;
         case GPIODomain::PADCTL_A0:
-            domain_base = Pinmux_G3;
-            break;
         case GPIODomain::PADCTL_A4:
-            domain_base = Pinmux_G4;
-            break;
         case GPIODomain::PADCTL_A13:
-            domain_base = Pinmux_G2;
-            break;
         case GPIODomain::PADCTL_A14:
-            domain_base = Pinmux_AON;
-            break;
         case GPIODomain::PADCTL_A16:
-            domain_base = Pinmux_EDP;
-            break;
         case GPIODomain::PADCTL_A24:
-            domain_base = Pinmux_G7;
             break;
         default:
             return; // Invalid domain
@@ -424,32 +354,16 @@ void GPIO_JETSON_ORIN_NN::set_gpio_low(GPIODomain domain, GPIOController control
         return;
     }
 
-    // Get the domain base address
-    uint32_t domain_base;
+    // Check if the domain is valid
     switch (domain) {
         case GPIODomain::NON_AON:
-            domain_base = base_CNF_NAON;
-            break;
         case GPIODomain::AON:
-            domain_base = base_CNF_AON;
-            break;
         case GPIODomain::PADCTL_A0:
-            domain_base = Pinmux_G3;
-            break;
         case GPIODomain::PADCTL_A4:
-            domain_base = Pinmux_G4;
-            break;
         case GPIODomain::PADCTL_A13:
-            domain_base = Pinmux_G2;
-            break;
         case GPIODomain::PADCTL_A14:
-            domain_base = Pinmux_AON;
-            break;
         case GPIODomain::PADCTL_A16:
-            domain_base = Pinmux_EDP;
-            break;
         case GPIODomain::PADCTL_A24:
-            domain_base = Pinmux_G7;
             break;
         default:
             return; // Invalid domain
@@ -474,32 +388,16 @@ bool GPIO_JETSON_ORIN_NN::get_gpio_logic_state(GPIODomain domain, GPIOController
         return false;
     }
 
-    // Get the domain base address
-    uint32_t domain_base;
+    // Check if the domain is valid
     switch (domain) {
         case GPIODomain::NON_AON:
-            domain_base = base_CNF_NAON;
-            break;
         case GPIODomain::AON:
-            domain_base = base_CNF_AON;
-            break;
         case GPIODomain::PADCTL_A0:
-            domain_base = Pinmux_G3;
-            break;
         case GPIODomain::PADCTL_A4:
-            domain_base = Pinmux_G4;
-            break;
         case GPIODomain::PADCTL_A13:
-            domain_base = Pinmux_G2;
-            break;
         case GPIODomain::PADCTL_A14:
-            domain_base = Pinmux_AON;
-            break;
         case GPIODomain::PADCTL_A16:
-            domain_base = Pinmux_EDP;
-            break;
         case GPIODomain::PADCTL_A24:
-            domain_base = Pinmux_G7;
             break;
         default:
             return false; // Invalid domain
@@ -561,14 +459,14 @@ void GPIO_JETSON_ORIN_NN::init()
 
     // Map memory for each GPIO domain
     uint32_t domain_addresses[] = {
-        base_CNF_NAON,  // 0x02210000
-        base_CNF_AON,   // 0x0c2f1000
-        Pinmux_G3,      // 0x02430000
-        Pinmux_G4,      // 0x02434000
-        Pinmux_G2,      // 0x0243d000
-        Pinmux_AON,     // 0x0c302000
-        Pinmux_EDP,     // 0x02440000
-        Pinmux_G7       // 0x02448000
+        GPIODomainBase::NON_AON,  // 0x02210000
+        GPIODomainBase::AON,      // 0x0c2f1000
+        GPIODomainBase::PADCTL_A0, // 0x02430000 (Pinmux_G3)
+        GPIODomainBase::PADCTL_A4, // 0x02434000 (Pinmux_G4)
+        GPIODomainBase::PADCTL_A13, // 0x0243d000 (Pinmux_G2)
+        GPIODomainBase::PADCTL_A14, // 0x0c302000 (Pinmux_AON)
+        GPIODomainBase::PADCTL_A16, // 0x02440000 (Pinmux_EDP)
+        GPIODomainBase::PADCTL_A24  // 0x02448000 (Pinmux_G7)
     };
 
     for (int i = 0; i < 8; i++) {
