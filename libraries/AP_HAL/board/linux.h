@@ -348,10 +348,11 @@
     #define HAL_BOARD_TERRAIN_DIRECTORY "/home/nvidia/ardupilot/terrain"
     #define HAL_BOARD_STORAGE_DIRECTORY "/home/nvidia/ardupilot"
 
-    // These will need to be updated based on the specific sensors you connect to the Jetson Orin Nano
-    // For now, we'll use placeholder values
-    #define HAL_INS_DEFAULT HAL_INS_NONE
-    #define HAL_BARO_DEFAULT HAL_BARO_NONE
+    // MPU9250 on SPI bus 0, CS 0
+    #define HAL_INS_PROBE_LIST PROBE_IMU_SPI(Invensense, "mpu9250", ROTATION_NONE)
+    // BMP280 on I2C bus 1, address 0x76
+    #define HAL_BARO_PROBE_LIST PROBE_BARO_I2C(BMP280, 1, 0x76)
+    #define HAL_MAG_PROBE_LIST PROBE_MAG_IMU(AK8963, mpu9250, 0, ROTATION_NONE)
 
     // Allow external I2C compasses
     #define HAL_PROBE_EXTERNAL_I2C_COMPASSES
