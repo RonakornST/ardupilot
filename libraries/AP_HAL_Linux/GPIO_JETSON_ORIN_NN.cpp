@@ -19,12 +19,12 @@ const char* GPIO_JETSON_ORIN_NN::_system_memory_device_path = "/dev/mem";
 GPIO_JETSON_ORIN_NN::GPIO_JETSON_ORIN_NN()
 {
     // Initialize all GPIO domain base pointers to nullptr
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 4; i++) {
         _gpio_domain_bases[i] = nullptr;
     }
 
     // Initialize GPIO output status tracking
-    for (int i = 0; i < 30; i++) {
+    for (int i = 0; i < 400; i++) {
         _gpio_output_status[i] = 0;
     }
 
@@ -39,40 +39,49 @@ void GPIO_JETSON_ORIN_NN::init_pin_mapping()
         _pin_mapping[i].valid = false;
     }
 
-    // Populate the pin mapping table based on Jetson Orin Nano documentation
-    // This is a placeholder and needs to be updated with actual pin mappings
-    // from the Jetson Orin Nano Technical Reference Manual
+    // Populate the pin mapping table based on jetgpio.h information
 
-    // Example mappings (these are placeholders and need to be verified):
-    // Based on the register information provided, we need to map pins to the correct
-    // domain (NON_AON, AON, FSI), controller (CTL0-CTL5, AON, FSI_CTL0-FSI_CTL1),
-    // port (0-7), and bit (0-7)
+    // Pin 3 - AO_GEN8_I2C_SDA_0 (AON domain)
+    _pin_mapping[3].domain = GPIODomain::PADCTL_A14;
+    _pin_mapping[3].controller = GPIOController::AO;
+    _pin_mapping[3].cnf_offset = GPIOPinOffset::PIN_3_CNF;
+    _pin_mapping[3].pinmux_offset = 0x18; // PINMUXO_3
+    _pin_mapping[3].valid = true;
 
-    // Example: Pin 7 -> NON_AON domain, CTL0 controller, Port 0, Bit 4
-    _pin_mapping[7].domain = GPIODomain::NON_AON;
-    _pin_mapping[7].controller = GPIOController::CTL0;
-    _pin_mapping[7].port = 0;
-    _pin_mapping[7].bit = 4;
+    // Pin 5 - AO_GEN8_I2C_SCL_0 (AON domain)
+    _pin_mapping[5].domain = GPIODomain::PADCTL_A14;
+    _pin_mapping[5].controller = GPIOController::AO;
+    _pin_mapping[5].cnf_offset = GPIOPinOffset::PIN_5_CNF;
+    _pin_mapping[5].pinmux_offset = 0x20; // PINMUXO_5
+    _pin_mapping[5].valid = true;
+
+    // Pin 7 - G7_SOC_GPIO59_0 (PADCTL_A24 domain)
+    _pin_mapping[7].domain = GPIODomain::PADCTL_A24;
+    _pin_mapping[7].controller = GPIOController::G7;
+    _pin_mapping[7].cnf_offset = GPIOPinOffset::PIN_7_CNF;
+    _pin_mapping[7].pinmux_offset = 0x30; // PINMUXO_7
     _pin_mapping[7].valid = true;
 
-    // Example: Pin 11 -> AON domain, AON controller, Port 1, Bit 6
-    _pin_mapping[11].domain = GPIODomain::AON;
-    _pin_mapping[11].controller = GPIOController::AON;
-    _pin_mapping[11].port = 1;
-    _pin_mapping[11].bit = 6;
-    _pin_mapping[11].valid = true;
+    // Pin 8 - G3_UART1_TX_0 (PADCTL_A0 domain)
+    _pin_mapping[8].domain = GPIODomain::PADCTL_A0;
+    _pin_mapping[8].controller = GPIOController::G3;
+    _pin_mapping[8].cnf_offset = GPIOPinOffset::PIN_8_CNF;
+    _pin_mapping[8].pinmux_offset = 0xa8; // PINMUXO_8
+    _pin_mapping[8].valid = true;
 
-    // Example: Pin 15 -> FSI domain, FSI_CTL0 controller, Port 2, Bit 3
-    _pin_mapping[15].domain = GPIODomain::FSI;
-    _pin_mapping[15].controller = GPIOController::FSI_CTL0;
-    _pin_mapping[15].port = 2;
-    _pin_mapping[15].bit = 3;
-    _pin_mapping[15].valid = true;
+    // Pin 10 - G3_UART1_RX_0 (PADCTL_A0 domain)
+    _pin_mapping[10].domain = GPIODomain::PADCTL_A0;
+    _pin_mapping[10].controller = GPIOController::G3;
+    _pin_mapping[10].cnf_offset = GPIOPinOffset::PIN_10_CNF;
+    _pin_mapping[10].pinmux_offset = 0xa0; // PINMUXO_10
+    _pin_mapping[10].valid = true;
 
-    // Add more pin mappings as needed based on the Jetson Orin Nano documentation
+    // Add more pin mappings as needed based on the jetgpio.h information
+    // The pattern continues for all the pins (11-40) following the same structure
 }
 
-bool GPIO_JETSON_ORIN_NN::pin_to_domain_controller_port_bit(uint8_t pin, GPIODomain& domain, GPIOController& controller, uint8_t& port, uint8_t& bit) const
+bool GPIO_JETSON_ORIN_NN::pin_to_domain_controller_registers(uint8_t pin, GPIODomain& domain, GPIOController& controller,
+                                                   uint32_t& cnf_offset, uint32_t& pinmux_offset) const
 {
     if (pin >= JETSON_ORIN_NANO_MAX_PINS || !_pin_mapping[pin].valid) {
         return false;
@@ -80,13 +89,13 @@ bool GPIO_JETSON_ORIN_NN::pin_to_domain_controller_port_bit(uint8_t pin, GPIODom
 
     domain = _pin_mapping[pin].domain;
     controller = _pin_mapping[pin].controller;
-    port = _pin_mapping[pin].port;
-    bit = _pin_mapping[pin].bit;
+    cnf_offset = _pin_mapping[pin].cnf_offset;
+    pinmux_offset = _pin_mapping[pin].pinmux_offset;
 
     return true;
 }
 
-uint32_t GPIO_JETSON_ORIN_NN::get_gpio_register_address(GPIODomain domain, GPIOController controller, uint8_t port, uint32_t reg_offset) const
+uint32_t GPIO_JETSON_ORIN_NN::get_gpio_register_address(GPIODomain domain, GPIOController controller, uint32_t reg_offset) const
 {
     // Get the base address for the domain
     uint32_t domain_base;
@@ -97,47 +106,43 @@ uint32_t GPIO_JETSON_ORIN_NN::get_gpio_register_address(GPIODomain domain, GPIOC
         case GPIODomain::AON:
             domain_base = GPIODomainBase::AON;
             break;
-        case GPIODomain::FSI:
-            domain_base = GPIODomainBase::FSI;
+        case GPIODomain::PADCTL_A0:
+            domain_base = GPIODomainBase::PADCTL_A0;
+            break;
+        case GPIODomain::PADCTL_A4:
+            domain_base = GPIODomainBase::PADCTL_A4;
+            break;
+        case GPIODomain::PADCTL_A13:
+            domain_base = GPIODomainBase::PADCTL_A13;
+            break;
+        case GPIODomain::PADCTL_A14:
+            domain_base = GPIODomainBase::PADCTL_A14;
+            break;
+        case GPIODomain::PADCTL_A16:
+            domain_base = GPIODomainBase::PADCTL_A16;
+            break;
+        case GPIODomain::PADCTL_A24:
+            domain_base = GPIODomainBase::PADCTL_A24;
             break;
         default:
             return 0; // Invalid domain
     }
-
-    // Calculate the controller offset within the domain
-    uint32_t controller_offset;
-    switch (domain) {
-        case GPIODomain::NON_AON:
-            // Controllers CTL0-CTL5
-            controller_offset = static_cast<uint32_t>(controller) * CONTROLLER_SIZE;
-            break;
-        case GPIODomain::AON:
-            // Only one controller (AON)
-            controller_offset = 0;
-            break;
-        case GPIODomain::FSI:
-            // Controllers FSI_CTL0-FSI_CTL1
-            controller_offset = (static_cast<uint32_t>(controller) - static_cast<uint32_t>(GPIOController::FSI_CTL0)) * CONTROLLER_SIZE;
-            break;
-        default:
-            return 0; // Invalid domain
-    }
-
-    // Calculate the port offset within the controller
-    uint32_t port_offset = port * PORT_SIZE;
 
     // Calculate the full register address
-    return domain_base + controller_offset + port_offset + reg_offset;
+    // For the Jetson Orin Nano, we use the direct register offset from the base address
+    return domain_base + reg_offset;
 }
 
-void GPIO_JETSON_ORIN_NN::set_gpio_mode_alt(GPIODomain domain, GPIOController controller, uint8_t port, uint8_t bit, uint8_t alternative)
+void GPIO_JETSON_ORIN_NN::set_gpio_mode_alt(GPIODomain domain, GPIOController controller, uint32_t cnf_offset, uint32_t pinmux_offset, uint8_t alternative)
 {
-    if (port >= 8 || _gpio_domain_bases[static_cast<int>(domain)] == nullptr) {
+    if (_gpio_domain_bases[static_cast<int>(domain)] == nullptr) {
         return;
     }
 
-    // Calculate the register address for the ENABLE_CONFIG register
-    uint32_t reg_addr = get_gpio_register_address(domain, controller, port, GPIORegisterOffsets::ENABLE_CONFIG);
+    // Calculate the register address for the CNF register
+    uint32_t cnf_reg_addr = get_gpio_register_address(domain, controller, cnf_offset);
+
+    // Get the domain base address
     uint32_t domain_base;
     switch (domain) {
         case GPIODomain::NON_AON:
@@ -146,44 +151,79 @@ void GPIO_JETSON_ORIN_NN::set_gpio_mode_alt(GPIODomain domain, GPIOController co
         case GPIODomain::AON:
             domain_base = GPIODomainBase::AON;
             break;
-        case GPIODomain::FSI:
-            domain_base = GPIODomainBase::FSI;
+        case GPIODomain::PADCTL_A0:
+            domain_base = GPIODomainBase::PADCTL_A0;
+            break;
+        case GPIODomain::PADCTL_A4:
+            domain_base = GPIODomainBase::PADCTL_A4;
+            break;
+        case GPIODomain::PADCTL_A13:
+            domain_base = GPIODomainBase::PADCTL_A13;
+            break;
+        case GPIODomain::PADCTL_A14:
+            domain_base = GPIODomainBase::PADCTL_A14;
+            break;
+        case GPIODomain::PADCTL_A16:
+            domain_base = GPIODomainBase::PADCTL_A16;
+            break;
+        case GPIODomain::PADCTL_A24:
+            domain_base = GPIODomainBase::PADCTL_A24;
             break;
         default:
             return; // Invalid domain
     }
 
     // Calculate the offset from the domain base
-    uint32_t reg_addr_offset = reg_addr - domain_base;
+    uint32_t cnf_reg_offset = cnf_reg_addr - domain_base;
 
-    // Get a pointer to the register
-    volatile uint32_t* reg_ptr = _gpio_domain_bases[static_cast<int>(domain)] +
-                                (reg_addr_offset / sizeof(uint32_t));
+    // Get a pointer to the CNF register
+    volatile uint32_t* cnf_reg_ptr = _gpio_domain_bases[static_cast<int>(domain)] +
+                                   (cnf_reg_offset / sizeof(uint32_t));
 
-    // Read current value
-    uint32_t reg_value = *reg_ptr;
+    // Read current CNF value
+    uint32_t cnf_reg_value = *cnf_reg_ptr;
 
     // Set the configuration for alternative function
-    // The exact bit pattern will depend on the Jetson Orin Nano GPIO controller
-    // For now, we'll assume setting bit 0 enables the alternative function
-    reg_value |= (1 << bit);
+    // Based on jetgpio.h, we need to set the CNF register to 0 for GPIO mode
+    // and to a specific value for alternative function
+    cnf_reg_value = alternative;
 
     // Write back
-    *reg_ptr = reg_value;
+    *cnf_reg_ptr = cnf_reg_value;
 
-    // Update our tracking of output state
-    int controller_index = static_cast<int>(domain) * 10 + static_cast<int>(controller);
-    _gpio_output_status[controller_index] |= (1 << ((port * 8) + bit));
+    // Now handle the pinmux register if needed
+    if (pinmux_offset != 0) {
+        // Calculate the register address for the PINMUX register
+        uint32_t pinmux_reg_addr = get_gpio_register_address(domain, controller, pinmux_offset);
+
+        // Calculate the offset from the domain base
+        uint32_t pinmux_reg_offset = pinmux_reg_addr - domain_base;
+
+        // Get a pointer to the PINMUX register
+        volatile uint32_t* pinmux_reg_ptr = _gpio_domain_bases[static_cast<int>(domain)] +
+                                          (pinmux_reg_offset / sizeof(uint32_t));
+
+        // Set the pinmux value for the alternative function
+        // The exact value depends on the specific pin and function
+        *pinmux_reg_ptr = alternative;
+    }
+
+    // Update our tracking of output state for this pin
+    // We'll use the cnf_offset as a unique identifier for the pin
+    int controller_index = static_cast<int>(domain) * 100 + static_cast<int>(controller);
+    _gpio_output_status[controller_index] |= (1 << (cnf_offset & 0x1F)); // Use lower 5 bits of offset as bit index
 }
 
-void GPIO_JETSON_ORIN_NN::set_gpio_mode_in(GPIODomain domain, GPIOController controller, uint8_t port, uint8_t bit)
+void GPIO_JETSON_ORIN_NN::set_gpio_mode_in(GPIODomain domain, GPIOController controller, uint32_t cnf_offset, uint32_t pinmux_offset)
 {
-    if (port >= 8 || _gpio_domain_bases[static_cast<int>(domain)] == nullptr) {
+    if (_gpio_domain_bases[static_cast<int>(domain)] == nullptr) {
         return;
     }
 
-    // Calculate the register address for the ENABLE_CONFIG register (to disable output)
-    uint32_t reg_addr = get_gpio_register_address(domain, controller, port, GPIORegisterOffsets::ENABLE_CONFIG);
+    // Calculate the register address for the CNF register
+    uint32_t cnf_reg_addr = get_gpio_register_address(domain, controller, cnf_offset);
+
+    // Get the domain base address
     uint32_t domain_base;
     switch (domain) {
         case GPIODomain::NON_AON:
@@ -192,44 +232,71 @@ void GPIO_JETSON_ORIN_NN::set_gpio_mode_in(GPIODomain domain, GPIOController con
         case GPIODomain::AON:
             domain_base = GPIODomainBase::AON;
             break;
-        case GPIODomain::FSI:
-            domain_base = GPIODomainBase::FSI;
+        case GPIODomain::PADCTL_A0:
+            domain_base = GPIODomainBase::PADCTL_A0;
+            break;
+        case GPIODomain::PADCTL_A4:
+            domain_base = GPIODomainBase::PADCTL_A4;
+            break;
+        case GPIODomain::PADCTL_A13:
+            domain_base = GPIODomainBase::PADCTL_A13;
+            break;
+        case GPIODomain::PADCTL_A14:
+            domain_base = GPIODomainBase::PADCTL_A14;
+            break;
+        case GPIODomain::PADCTL_A16:
+            domain_base = GPIODomainBase::PADCTL_A16;
+            break;
+        case GPIODomain::PADCTL_A24:
+            domain_base = GPIODomainBase::PADCTL_A24;
             break;
         default:
             return; // Invalid domain
     }
 
     // Calculate the offset from the domain base
-    uint32_t reg_addr_offset = reg_addr - domain_base;
+    uint32_t cnf_reg_offset = cnf_reg_addr - domain_base;
 
-    // Get a pointer to the register
-    volatile uint32_t* reg_ptr = _gpio_domain_bases[static_cast<int>(domain)] +
-                                (reg_addr_offset / sizeof(uint32_t));
+    // Get a pointer to the CNF register
+    volatile uint32_t* cnf_reg_ptr = _gpio_domain_bases[static_cast<int>(domain)] +
+                                   (cnf_reg_offset / sizeof(uint32_t));
 
-    // Read current value
-    uint32_t reg_value = *reg_ptr;
+    // Based on jetgpio.h, we need to set the CNF register to 0 for GPIO mode
+    // and set the direction to input
+    *cnf_reg_ptr = 0;
 
-    // Clear the output enable bit for this pin (set to input mode)
-    // Based on the Orin TRM, bit 0 of GPIO_OUT_VAL is effective when GPIO_ENABLE is ENABLE and IN_OUT is OUT
-    // So we need to set IN_OUT to IN (assuming bit 1 controls this)
-    reg_value &= ~(1 << bit);
+    // Now handle the pinmux register if needed
+    if (pinmux_offset != 0) {
+        // Calculate the register address for the PINMUX register
+        uint32_t pinmux_reg_addr = get_gpio_register_address(domain, controller, pinmux_offset);
 
-    // Write back
-    *reg_ptr = reg_value;
+        // Calculate the offset from the domain base
+        uint32_t pinmux_reg_offset = pinmux_reg_addr - domain_base;
 
-    // Update our tracking of output state
-    int controller_index = static_cast<int>(domain) * 10 + static_cast<int>(controller);
-    _gpio_output_status[controller_index] &= ~(1 << ((port * 8) + bit));
+        // Get a pointer to the PINMUX register
+        volatile uint32_t* pinmux_reg_ptr = _gpio_domain_bases[static_cast<int>(domain)] +
+                                          (pinmux_reg_offset / sizeof(uint32_t));
+
+        // Set the pinmux value for GPIO mode (typically 0)
+        *pinmux_reg_ptr = 0;
+    }
+
+    // Update our tracking of output state for this pin
+    // We'll use the cnf_offset as a unique identifier for the pin
+    int controller_index = static_cast<int>(domain) * 100 + static_cast<int>(controller);
+    _gpio_output_status[controller_index] &= ~(1 << (cnf_offset & 0x1F)); // Use lower 5 bits of offset as bit index
 }
 
-void GPIO_JETSON_ORIN_NN::set_gpio_mode_out(GPIODomain domain, GPIOController controller, uint8_t port, uint8_t bit)
+void GPIO_JETSON_ORIN_NN::set_gpio_mode_out(GPIODomain domain, GPIOController controller, uint32_t cnf_offset, uint32_t pinmux_offset)
 {
-    if (port >= 8 || _gpio_domain_bases[static_cast<int>(domain)] == nullptr) {
+    if (_gpio_domain_bases[static_cast<int>(domain)] == nullptr) {
         return;
     }
 
-    // Calculate the register address for the ENABLE_CONFIG register (to enable output)
-    uint32_t reg_addr = get_gpio_register_address(domain, controller, port, GPIORegisterOffsets::ENABLE_CONFIG);
+    // Calculate the register address for the CNF register
+    uint32_t cnf_reg_addr = get_gpio_register_address(domain, controller, cnf_offset);
+
+    // Get the domain base address
     uint32_t domain_base;
     switch (domain) {
         case GPIODomain::NON_AON:
@@ -238,44 +305,72 @@ void GPIO_JETSON_ORIN_NN::set_gpio_mode_out(GPIODomain domain, GPIOController co
         case GPIODomain::AON:
             domain_base = GPIODomainBase::AON;
             break;
-        case GPIODomain::FSI:
-            domain_base = GPIODomainBase::FSI;
+        case GPIODomain::PADCTL_A0:
+            domain_base = GPIODomainBase::PADCTL_A0;
+            break;
+        case GPIODomain::PADCTL_A4:
+            domain_base = GPIODomainBase::PADCTL_A4;
+            break;
+        case GPIODomain::PADCTL_A13:
+            domain_base = GPIODomainBase::PADCTL_A13;
+            break;
+        case GPIODomain::PADCTL_A14:
+            domain_base = GPIODomainBase::PADCTL_A14;
+            break;
+        case GPIODomain::PADCTL_A16:
+            domain_base = GPIODomainBase::PADCTL_A16;
+            break;
+        case GPIODomain::PADCTL_A24:
+            domain_base = GPIODomainBase::PADCTL_A24;
             break;
         default:
             return; // Invalid domain
     }
 
     // Calculate the offset from the domain base
-    uint32_t reg_addr_offset = reg_addr - domain_base;
+    uint32_t cnf_reg_offset = cnf_reg_addr - domain_base;
 
-    // Get a pointer to the register
-    volatile uint32_t* reg_ptr = _gpio_domain_bases[static_cast<int>(domain)] +
-                                (reg_addr_offset / sizeof(uint32_t));
+    // Get a pointer to the CNF register
+    volatile uint32_t* cnf_reg_ptr = _gpio_domain_bases[static_cast<int>(domain)] +
+                                   (cnf_reg_offset / sizeof(uint32_t));
 
-    // Read current value
-    uint32_t reg_value = *reg_ptr;
+    // Based on jetgpio.h, we need to set the CNF register to 0 for GPIO mode
+    // and set the direction to output (typically by setting bit 0)
+    *cnf_reg_ptr = 1; // Set bit 0 for output mode
 
-    // Set the output enable bit for this pin
-    // Based on the Orin TRM, bit 0 of GPIO_OUT_VAL is effective when GPIO_ENABLE is ENABLE and IN_OUT is OUT
-    // So we need to set IN_OUT to OUT (assuming bit 1 controls this)
-    reg_value |= (1 << bit);
+    // Now handle the pinmux register if needed
+    if (pinmux_offset != 0) {
+        // Calculate the register address for the PINMUX register
+        uint32_t pinmux_reg_addr = get_gpio_register_address(domain, controller, pinmux_offset);
 
-    // Write back
-    *reg_ptr = reg_value;
+        // Calculate the offset from the domain base
+        uint32_t pinmux_reg_offset = pinmux_reg_addr - domain_base;
 
-    // Update our tracking of output state
-    int controller_index = static_cast<int>(domain) * 10 + static_cast<int>(controller);
-    _gpio_output_status[controller_index] |= (1 << ((port * 8) + bit));
+        // Get a pointer to the PINMUX register
+        volatile uint32_t* pinmux_reg_ptr = _gpio_domain_bases[static_cast<int>(domain)] +
+                                          (pinmux_reg_offset / sizeof(uint32_t));
+
+        // Set the pinmux value for GPIO mode (typically 0)
+        *pinmux_reg_ptr = 0;
+    }
+
+    // Update our tracking of output state for this pin
+    // We'll use the cnf_offset as a unique identifier for the pin
+    int controller_index = static_cast<int>(domain) * 100 + static_cast<int>(controller);
+    _gpio_output_status[controller_index] |= (1 << (cnf_offset & 0x1F)); // Use lower 5 bits of offset as bit index
 }
 
-void GPIO_JETSON_ORIN_NN::set_gpio_high(GPIODomain domain, GPIOController controller, uint8_t port, uint8_t bit)
+void GPIO_JETSON_ORIN_NN::set_gpio_high(GPIODomain domain, GPIOController controller, uint32_t cnf_offset, uint32_t pinmux_offset)
 {
-    if (port >= 8 || _gpio_domain_bases[static_cast<int>(domain)] == nullptr) {
+    if (_gpio_domain_bases[static_cast<int>(domain)] == nullptr) {
         return;
     }
 
-    // Calculate the register address for the OUTPUT_VALUE register
-    uint32_t reg_addr = get_gpio_register_address(domain, controller, port, GPIORegisterOffsets::OUTPUT_VALUE);
+    // Calculate the register address for the OUT register
+    // For Jetson Orin Nano, the OUT register is at offset CNF + 0x10 (based on jetgpio.h)
+    uint32_t out_reg_addr = get_gpio_register_address(domain, controller, cnf_offset + GPIORegisterOffsets::OUT);
+
+    // Get the domain base address
     uint32_t domain_base;
     switch (domain) {
         case GPIODomain::NON_AON:
@@ -284,42 +379,55 @@ void GPIO_JETSON_ORIN_NN::set_gpio_high(GPIODomain domain, GPIOController contro
         case GPIODomain::AON:
             domain_base = GPIODomainBase::AON;
             break;
-        case GPIODomain::FSI:
-            domain_base = GPIODomainBase::FSI;
+        case GPIODomain::PADCTL_A0:
+            domain_base = GPIODomainBase::PADCTL_A0;
+            break;
+        case GPIODomain::PADCTL_A4:
+            domain_base = GPIODomainBase::PADCTL_A4;
+            break;
+        case GPIODomain::PADCTL_A13:
+            domain_base = GPIODomainBase::PADCTL_A13;
+            break;
+        case GPIODomain::PADCTL_A14:
+            domain_base = GPIODomainBase::PADCTL_A14;
+            break;
+        case GPIODomain::PADCTL_A16:
+            domain_base = GPIODomainBase::PADCTL_A16;
+            break;
+        case GPIODomain::PADCTL_A24:
+            domain_base = GPIODomainBase::PADCTL_A24;
             break;
         default:
             return; // Invalid domain
     }
 
     // Calculate the offset from the domain base
-    uint32_t reg_addr_offset = reg_addr - domain_base;
+    uint32_t out_reg_offset = out_reg_addr - domain_base;
 
-    // Get a pointer to the register
-    volatile uint32_t* reg_ptr = _gpio_domain_bases[static_cast<int>(domain)] +
-                                (reg_addr_offset / sizeof(uint32_t));
+    // Get a pointer to the OUT register
+    volatile uint32_t* out_reg_ptr = _gpio_domain_bases[static_cast<int>(domain)] +
+                                   (out_reg_offset / sizeof(uint32_t));
 
-    // Read current value
-    uint32_t reg_value = *reg_ptr;
+    // Set the output value to high (1)
+    *out_reg_ptr = 1;
 
-    // Set the bit for this pin to high
-    reg_value |= (1 << bit);
-
-    // Write back
-    *reg_ptr = reg_value;
-
-    // Update our tracking of output state
-    int controller_index = static_cast<int>(domain) * 10 + static_cast<int>(controller);
-    _gpio_output_status[controller_index] |= (1 << ((port * 8) + bit));
+    // Update our tracking of output state for this pin
+    // We'll use the cnf_offset as a unique identifier for the pin
+    int controller_index = static_cast<int>(domain) * 100 + static_cast<int>(controller);
+    _gpio_output_status[controller_index] |= (1 << (cnf_offset & 0x1F)); // Use lower 5 bits of offset as bit index
 }
 
-void GPIO_JETSON_ORIN_NN::set_gpio_low(GPIODomain domain, GPIOController controller, uint8_t port, uint8_t bit)
+void GPIO_JETSON_ORIN_NN::set_gpio_low(GPIODomain domain, GPIOController controller, uint32_t cnf_offset, uint32_t pinmux_offset)
 {
-    if (port >= 8 || _gpio_domain_bases[static_cast<int>(domain)] == nullptr) {
+    if (_gpio_domain_bases[static_cast<int>(domain)] == nullptr) {
         return;
     }
 
-    // Calculate the register address for the OUTPUT_VALUE register
-    uint32_t reg_addr = get_gpio_register_address(domain, controller, port, GPIORegisterOffsets::OUTPUT_VALUE);
+    // Calculate the register address for the OUT register
+    // For Jetson Orin Nano, the OUT register is at offset CNF + 0x10 (based on jetgpio.h)
+    uint32_t out_reg_addr = get_gpio_register_address(domain, controller, cnf_offset + GPIORegisterOffsets::OUT);
+
+    // Get the domain base address
     uint32_t domain_base;
     switch (domain) {
         case GPIODomain::NON_AON:
@@ -328,42 +436,55 @@ void GPIO_JETSON_ORIN_NN::set_gpio_low(GPIODomain domain, GPIOController control
         case GPIODomain::AON:
             domain_base = GPIODomainBase::AON;
             break;
-        case GPIODomain::FSI:
-            domain_base = GPIODomainBase::FSI;
+        case GPIODomain::PADCTL_A0:
+            domain_base = GPIODomainBase::PADCTL_A0;
+            break;
+        case GPIODomain::PADCTL_A4:
+            domain_base = GPIODomainBase::PADCTL_A4;
+            break;
+        case GPIODomain::PADCTL_A13:
+            domain_base = GPIODomainBase::PADCTL_A13;
+            break;
+        case GPIODomain::PADCTL_A14:
+            domain_base = GPIODomainBase::PADCTL_A14;
+            break;
+        case GPIODomain::PADCTL_A16:
+            domain_base = GPIODomainBase::PADCTL_A16;
+            break;
+        case GPIODomain::PADCTL_A24:
+            domain_base = GPIODomainBase::PADCTL_A24;
             break;
         default:
             return; // Invalid domain
     }
 
     // Calculate the offset from the domain base
-    uint32_t reg_addr_offset = reg_addr - domain_base;
+    uint32_t out_reg_offset = out_reg_addr - domain_base;
 
-    // Get a pointer to the register
-    volatile uint32_t* reg_ptr = _gpio_domain_bases[static_cast<int>(domain)] +
-                                (reg_addr_offset / sizeof(uint32_t));
+    // Get a pointer to the OUT register
+    volatile uint32_t* out_reg_ptr = _gpio_domain_bases[static_cast<int>(domain)] +
+                                   (out_reg_offset / sizeof(uint32_t));
 
-    // Read current value
-    uint32_t reg_value = *reg_ptr;
+    // Set the output value to low (0)
+    *out_reg_ptr = 0;
 
-    // Clear the bit for this pin to set it low
-    reg_value &= ~(1 << bit);
-
-    // Write back
-    *reg_ptr = reg_value;
-
-    // Update our tracking of output state
-    int controller_index = static_cast<int>(domain) * 10 + static_cast<int>(controller);
-    _gpio_output_status[controller_index] &= ~(1 << ((port * 8) + bit));
+    // Update our tracking of output state for this pin
+    // We'll use the cnf_offset as a unique identifier for the pin
+    int controller_index = static_cast<int>(domain) * 100 + static_cast<int>(controller);
+    _gpio_output_status[controller_index] &= ~(1 << (cnf_offset & 0x1F)); // Use lower 5 bits of offset as bit index
 }
 
-bool GPIO_JETSON_ORIN_NN::get_gpio_logic_state(GPIODomain domain, GPIOController controller, uint8_t port, uint8_t bit)
+bool GPIO_JETSON_ORIN_NN::get_gpio_logic_state(GPIODomain domain, GPIOController controller, uint32_t cnf_offset, uint32_t pinmux_offset)
 {
-    if (port >= 8 || _gpio_domain_bases[static_cast<int>(domain)] == nullptr) {
+    if (_gpio_domain_bases[static_cast<int>(domain)] == nullptr) {
         return false;
     }
 
-    // Calculate the register address for the INPUT_VALUE register
-    uint32_t reg_addr = get_gpio_register_address(domain, controller, port, GPIORegisterOffsets::INPUT_VALUE);
+    // Calculate the register address for the IN register
+    // For Jetson Orin Nano, the IN register is at offset CNF + 0x20 (based on jetgpio.h)
+    uint32_t in_reg_addr = get_gpio_register_address(domain, controller, cnf_offset + GPIORegisterOffsets::IN);
+
+    // Get the domain base address
     uint32_t domain_base;
     switch (domain) {
         case GPIODomain::NON_AON:
@@ -372,25 +493,41 @@ bool GPIO_JETSON_ORIN_NN::get_gpio_logic_state(GPIODomain domain, GPIOController
         case GPIODomain::AON:
             domain_base = GPIODomainBase::AON;
             break;
-        case GPIODomain::FSI:
-            domain_base = GPIODomainBase::FSI;
+        case GPIODomain::PADCTL_A0:
+            domain_base = GPIODomainBase::PADCTL_A0;
+            break;
+        case GPIODomain::PADCTL_A4:
+            domain_base = GPIODomainBase::PADCTL_A4;
+            break;
+        case GPIODomain::PADCTL_A13:
+            domain_base = GPIODomainBase::PADCTL_A13;
+            break;
+        case GPIODomain::PADCTL_A14:
+            domain_base = GPIODomainBase::PADCTL_A14;
+            break;
+        case GPIODomain::PADCTL_A16:
+            domain_base = GPIODomainBase::PADCTL_A16;
+            break;
+        case GPIODomain::PADCTL_A24:
+            domain_base = GPIODomainBase::PADCTL_A24;
             break;
         default:
             return false; // Invalid domain
     }
 
     // Calculate the offset from the domain base
-    uint32_t reg_addr_offset = reg_addr - domain_base;
+    uint32_t in_reg_offset = in_reg_addr - domain_base;
 
-    // Get a pointer to the register
-    volatile uint32_t* reg_ptr = _gpio_domain_bases[static_cast<int>(domain)] +
-                                (reg_addr_offset / sizeof(uint32_t));
+    // Get a pointer to the IN register
+    volatile uint32_t* in_reg_ptr = _gpio_domain_bases[static_cast<int>(domain)] +
+                                  (in_reg_offset / sizeof(uint32_t));
 
-    // Read the register value
-    uint32_t reg_value = *reg_ptr;
+    // Read the input value
+    // For Jetson Orin Nano, the input value is typically in bit 0
+    uint32_t in_reg_value = *in_reg_ptr;
 
-    // Return the state of the specific bit
-    return (reg_value & (1 << bit)) != 0;
+    // Return the state of the input (bit 0)
+    return (in_reg_value & 0x1) != 0;
 }
 
 volatile uint32_t* GPIO_JETSON_ORIN_NN::get_memory_pointer(uint32_t address, uint32_t range) const
@@ -436,14 +573,19 @@ void GPIO_JETSON_ORIN_NN::init()
         return;
     }
 
-    // Map memory for each GPIO domain (NON_AON, AON, FSI)
+    // Map memory for each GPIO domain
     uint32_t domain_addresses[] = {
         GPIODomainBase::NON_AON,
         GPIODomainBase::AON,
-        GPIODomainBase::FSI
+        GPIODomainBase::PADCTL_A0,
+        GPIODomainBase::PADCTL_A4,
+        GPIODomainBase::PADCTL_A13,
+        GPIODomainBase::PADCTL_A14,
+        GPIODomainBase::PADCTL_A16,
+        GPIODomainBase::PADCTL_A24
     };
 
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 8; i++) {
         uint32_t domain_address = domain_addresses[i];
 
         // Map the entire 64-KiB domain space
@@ -471,17 +613,17 @@ void GPIO_JETSON_ORIN_NN::pinMode(uint8_t pin, uint8_t output)
 {
     GPIODomain domain;
     GPIOController controller;
-    uint8_t port, bit;
+    uint32_t cnf_offset, pinmux_offset;
 
-    if (!pin_to_domain_controller_port_bit(pin, domain, controller, port, bit)) {
+    if (!pin_to_domain_controller_registers(pin, domain, controller, cnf_offset, pinmux_offset)) {
         return;
     }
 
     if (output == HAL_GPIO_INPUT) {
-        set_gpio_mode_in(domain, controller, port, bit);
+        set_gpio_mode_in(domain, controller, cnf_offset, pinmux_offset);
     } else {
-        set_gpio_mode_in(domain, controller, port, bit);  // First set as input to avoid glitches
-        set_gpio_mode_out(domain, controller, port, bit);  // Then set as output
+        set_gpio_mode_in(domain, controller, cnf_offset, pinmux_offset);  // First set as input to avoid glitches
+        set_gpio_mode_out(domain, controller, cnf_offset, pinmux_offset);  // Then set as output
     }
 }
 
@@ -489,20 +631,20 @@ void GPIO_JETSON_ORIN_NN::pinMode(uint8_t pin, uint8_t output, uint8_t alt)
 {
     GPIODomain domain;
     GPIOController controller;
-    uint8_t port, bit;
+    uint32_t cnf_offset, pinmux_offset;
 
-    if (!pin_to_domain_controller_port_bit(pin, domain, controller, port, bit)) {
+    if (!pin_to_domain_controller_registers(pin, domain, controller, cnf_offset, pinmux_offset)) {
         return;
     }
 
     if (output == HAL_GPIO_INPUT) {
-        set_gpio_mode_in(domain, controller, port, bit);
+        set_gpio_mode_in(domain, controller, cnf_offset, pinmux_offset);
     } else if (output == HAL_GPIO_ALT) {
-        set_gpio_mode_in(domain, controller, port, bit);  // First set as input to avoid glitches
-        set_gpio_mode_alt(domain, controller, port, bit, alt);
+        set_gpio_mode_in(domain, controller, cnf_offset, pinmux_offset);  // First set as input to avoid glitches
+        set_gpio_mode_alt(domain, controller, cnf_offset, pinmux_offset, alt);
     } else {
-        set_gpio_mode_in(domain, controller, port, bit);  // First set as input to avoid glitches
-        set_gpio_mode_out(domain, controller, port, bit);  // Then set as output
+        set_gpio_mode_in(domain, controller, cnf_offset, pinmux_offset);  // First set as input to avoid glitches
+        set_gpio_mode_out(domain, controller, cnf_offset, pinmux_offset);  // Then set as output
     }
 }
 
@@ -510,29 +652,29 @@ uint8_t GPIO_JETSON_ORIN_NN::read(uint8_t pin)
 {
     GPIODomain domain;
     GPIOController controller;
-    uint8_t port, bit;
+    uint32_t cnf_offset, pinmux_offset;
 
-    if (!pin_to_domain_controller_port_bit(pin, domain, controller, port, bit)) {
+    if (!pin_to_domain_controller_registers(pin, domain, controller, cnf_offset, pinmux_offset)) {
         return 0;
     }
 
-    return static_cast<uint8_t>(get_gpio_logic_state(domain, controller, port, bit));
+    return static_cast<uint8_t>(get_gpio_logic_state(domain, controller, cnf_offset, pinmux_offset));
 }
 
 void GPIO_JETSON_ORIN_NN::write(uint8_t pin, uint8_t value)
 {
     GPIODomain domain;
     GPIOController controller;
-    uint8_t port, bit;
+    uint32_t cnf_offset, pinmux_offset;
 
-    if (!pin_to_domain_controller_port_bit(pin, domain, controller, port, bit)) {
+    if (!pin_to_domain_controller_registers(pin, domain, controller, cnf_offset, pinmux_offset)) {
         return;
     }
 
     if (value != 0) {
-        set_gpio_high(domain, controller, port, bit);
+        set_gpio_high(domain, controller, cnf_offset, pinmux_offset);
     } else {
-        set_gpio_low(domain, controller, port, bit);
+        set_gpio_low(domain, controller, cnf_offset, pinmux_offset);
     }
 }
 
@@ -540,19 +682,19 @@ void GPIO_JETSON_ORIN_NN::toggle(uint8_t pin)
 {
     GPIODomain domain;
     GPIOController controller;
-    uint8_t port, bit;
+    uint32_t cnf_offset, pinmux_offset;
 
-    if (!pin_to_domain_controller_port_bit(pin, domain, controller, port, bit)) {
+    if (!pin_to_domain_controller_registers(pin, domain, controller, cnf_offset, pinmux_offset)) {
         return;
     }
 
-    int controller_index = static_cast<int>(domain) * 10 + static_cast<int>(controller);
-    uint32_t pin_mask = 1 << ((port * 8) + bit);
+    int controller_index = static_cast<int>(domain) * 100 + static_cast<int>(controller);
+    uint32_t pin_mask = 1 << (cnf_offset & 0x1F); // Use lower 5 bits of offset as bit index
     _gpio_output_status[controller_index] ^= pin_mask;
 
     if (_gpio_output_status[controller_index] & pin_mask) {
-        set_gpio_high(domain, controller, port, bit);
+        set_gpio_high(domain, controller, cnf_offset, pinmux_offset);
     } else {
-        set_gpio_low(domain, controller, port, bit);
+        set_gpio_low(domain, controller, cnf_offset, pinmux_offset);
     }
 }
