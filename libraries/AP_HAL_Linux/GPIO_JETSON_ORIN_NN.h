@@ -63,6 +63,16 @@ private:
         static const uint32_t PADCTL_A24 = 0x02448000; // Pinmux_G7
     };
 
+    // GPIO register structure based on orin.c
+    typedef struct {
+        uint32_t CNF[1];      // Configuration register
+        uint32_t DEB[1];      // Debounce register
+        uint32_t IN[1];       // Input value register
+        uint32_t OUT[1];      // Output value register
+        uint32_t OUT_VLE[1];  // Output value register
+        uint32_t INT_CLR[1];  // Interrupt clear register
+    } GPIO_CNFO;
+
     // Register offsets for each pin from jetgpio.h
     struct GPIOPinOffset {
         // CNF registers
@@ -106,6 +116,74 @@ private:
         static const uint32_t INT_LVL = 0x60;  // Interrupt level register
         static const uint32_t INT_CLR = 0x70;  // Interrupt clear register
     };
+
+    // Pinmux register offsets for each pin
+    struct PinmuxOffset {
+        static const uint32_t PIN_3 = 0x18;   // Pinmux offset for pin 3
+        static const uint32_t PIN_5 = 0x20;   // Pinmux offset for pin 5
+        static const uint32_t PIN_7 = 0x30;   // Pinmux offset for pin 7
+        static const uint32_t PIN_8 = 0xa8;   // Pinmux offset for pin 8
+        static const uint32_t PIN_10 = 0xa0;  // Pinmux offset for pin 10
+        static const uint32_t PIN_11 = 0x98;  // Pinmux offset for pin 11
+        static const uint32_t PIN_12 = 0x90;  // Pinmux offset for pin 12
+        static const uint32_t PIN_13 = 0x88;  // Pinmux offset for pin 13
+        static const uint32_t PIN_15 = 0x80;  // Pinmux offset for pin 15
+        static const uint32_t PIN_16 = 0x78;  // Pinmux offset for pin 16
+        static const uint32_t PIN_18 = 0x70;  // Pinmux offset for pin 18
+        static const uint32_t PIN_19 = 0x68;  // Pinmux offset for pin 19
+        static const uint32_t PIN_21 = 0x60;  // Pinmux offset for pin 21
+        static const uint32_t PIN_22 = 0x58;  // Pinmux offset for pin 22
+        static const uint32_t PIN_23 = 0x50;  // Pinmux offset for pin 23
+        static const uint32_t PIN_24 = 0x48;  // Pinmux offset for pin 24
+        static const uint32_t PIN_26 = 0x40;  // Pinmux offset for pin 26
+        static const uint32_t PIN_27 = 0x38;  // Pinmux offset for pin 27
+        static const uint32_t PIN_28 = 0x30;  // Pinmux offset for pin 28
+        static const uint32_t PIN_29 = 0x28;  // Pinmux offset for pin 29
+        static const uint32_t PIN_31 = 0x20;  // Pinmux offset for pin 31
+        static const uint32_t PIN_32 = 0x18;  // Pinmux offset for pin 32
+        static const uint32_t PIN_33 = 0x10;  // Pinmux offset for pin 33
+        static const uint32_t PIN_35 = 0x08;  // Pinmux offset for pin 35
+        static const uint32_t PIN_36 = 0x00;  // Pinmux offset for pin 36
+        static const uint32_t PIN_37 = 0xf8;  // Pinmux offset for pin 37
+        static const uint32_t PIN_38 = 0xf0;  // Pinmux offset for pin 38
+        static const uint32_t PIN_40 = 0xe8;  // Pinmux offset for pin 40
+    };
+
+    // Config register offsets for each pin
+    struct ConfigOffset {
+        static const uint32_t PIN_3 = 0x1c;    // Config offset for pin 3
+        static const uint32_t PIN_5 = 0x24;    // Config offset for pin 5
+        static const uint32_t PIN_7 = 0x34;    // Config offset for pin 7
+        static const uint32_t PIN_8 = 0xac;    // Config offset for pin 8
+        static const uint32_t PIN_10 = 0xa4;   // Config offset for pin 10
+        static const uint32_t PIN_11 = 0x9c;   // Config offset for pin 11
+        static const uint32_t PIN_12 = 0x94;   // Config offset for pin 12
+        static const uint32_t PIN_13 = 0x8c;   // Config offset for pin 13
+        static const uint32_t PIN_15 = 0x84;   // Config offset for pin 15
+        static const uint32_t PIN_16 = 0x7c;   // Config offset for pin 16
+        static const uint32_t PIN_18 = 0x74;   // Config offset for pin 18
+        static const uint32_t PIN_19 = 0x6c;   // Config offset for pin 19
+        static const uint32_t PIN_21 = 0x64;   // Config offset for pin 21
+        static const uint32_t PIN_22 = 0x5c;   // Config offset for pin 22
+        static const uint32_t PIN_23 = 0x54;   // Config offset for pin 23
+        static const uint32_t PIN_24 = 0x4c;   // Config offset for pin 24
+        static const uint32_t PIN_26 = 0x44;   // Config offset for pin 26
+        static const uint32_t PIN_27 = 0x3c;   // Config offset for pin 27
+        static const uint32_t PIN_28 = 0x34;   // Config offset for pin 28
+        static const uint32_t PIN_29 = 0x2c;   // Config offset for pin 29
+        static const uint32_t PIN_31 = 0x24;   // Config offset for pin 31
+        static const uint32_t PIN_32 = 0x1c;   // Config offset for pin 32
+        static const uint32_t PIN_33 = 0x14;   // Config offset for pin 33
+        static const uint32_t PIN_35 = 0x0c;   // Config offset for pin 35
+        static const uint32_t PIN_36 = 0x04;   // Config offset for pin 36
+        static const uint32_t PIN_37 = 0xfc;   // Config offset for pin 37
+        static const uint32_t PIN_38 = 0xf4;   // Config offset for pin 38
+        static const uint32_t PIN_40 = 0xec;   // Config offset for pin 40
+    };
+
+    // Config values
+    static const uint32_t CFGO_IN = 0x0;    // Config value for input
+    static const uint32_t CFGO_OUT = 0x1;   // Config value for output
 
     /**
      * @brief Open memory device to allow gpio address access
