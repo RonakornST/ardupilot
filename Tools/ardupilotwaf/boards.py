@@ -1723,6 +1723,16 @@ class obal(linux):
             CONFIG_HAL_BOARD_SUBTYPE = 'HAL_BOARD_SUBTYPE_LINUX_OBAL_V1',
         )
 
+class orin(linux):
+    toolchain = 'aarch64-linux-gnu'
+    
+    def configure_env(self, cfg, env):
+        super(orin, self).configure_env(cfg, env)
+
+        env.DEFINES.update(
+            CONFIG_HAL_BOARD_SUBTYPE = 'HAL_BOARD_SUBTYPE_LINUX_JETSON_ORIN_NANO',
+        )
+
 class canzero(linux):
     toolchain = 'arm-linux-gnueabihf'
 
